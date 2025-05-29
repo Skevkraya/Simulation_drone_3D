@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
     while(running) {
         SDL_event_listener(&drone, dt);
         drone_update(&drone, dt);
-        updateChunks();
+        updateChunks(&drone);
     }
 
     SDL_Delay(1000);
