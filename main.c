@@ -2,7 +2,7 @@
 #include "lib.h"
 #include "drone.h"
 #include "input.h"
-#include "./map/map_perlin.h"
+#include "./map/main/map_main.h"
 #include "pid.h"
 
 // gcc main.c drone.c graphics.c input.c  -o drone3D.exe -lmingw32 -lSDLmain -lSDL -lSDL_gfx -lm -lopengl32 -lglu32
