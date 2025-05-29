@@ -40,11 +40,11 @@ void apply_force_local(Drone* drone, float fx, float fy, float fz) {
     float yaw_rad   = drone->rot[1] * (M_PI / 180.0f);
     float roll_rad  = drone->rot[2] * (M_PI / 180.0f);
 
-    // 1) start in local coords
+    // 1) On commence en coordonnées locales
     float rx = fx, ry = fy, rz = fz;
     float tmp;
 
-    // 2) pitch around X
+    // 2) pitch 
     {
       float c = cosf(pitch_rad), s = sinf(pitch_rad);
       tmp = ry*c - rz*s;
@@ -52,7 +52,7 @@ void apply_force_local(Drone* drone, float fx, float fy, float fz) {
       ry  = tmp;
     }
 
-    // 3) roll around Z
+    // 3) roll 
     {
       float c = cosf(roll_rad), s = sinf(roll_rad);
       tmp = rx*c - ry*s;
@@ -60,7 +60,7 @@ void apply_force_local(Drone* drone, float fx, float fy, float fz) {
       rx  = tmp;
     }
 
-    // 4) yaw around Y (last!)
+    // 4) yaw 
     {
       float c = cosf(yaw_rad), s = sinf(yaw_rad);
       tmp = rx*c + rz*s;
@@ -70,9 +70,8 @@ void apply_force_local(Drone* drone, float fx, float fy, float fz) {
 
     apply_force(drone, rx, ry, rz);
 }
-
-void drone_update(Drone * drone, double dt) { 
-         // ─── 1) CALCUL DES EFFORTS PAR PID ────────────────────────────────────────
+void compute_thrust(Drone* drone, double dt) {
+             // ─── 1) CALCUL DES EFFORTS PAR PID ────────────────────────────────────────
     // Pitch (tangage) autour de X
     float tau_p = pid_compute(&pid_pitch,
                               control->pitch_setpoint,   // consigne (−1…+1)
@@ -94,20 +93,20 @@ void drone_update(Drone * drone, double dt) {
                               dt);
 
     // Altitude (force verticale)
-    float Fz_pid = 0.0f;
+    float Fy_pid = 0.0f;
     if (control->altitude_hold) {
         // PI(D) pour maintenir altitude
-        Fz_pid = pid_compute(&pid_alt,
+        Fy_pid = pid_compute(&pid_alt,
                              control->altitude_setpoint,  // consigne en m
                              drone->pos.y,               // hauteur actuelle
                              dt);
     }
     // on ajoute le poids pour compenser la gravité
-    float Fz = Fz_pid + drone->mass * 9.81f;
+    float Fy = Fy_pid + drone->mass * 9.81f;
 
     // ─── 2) MIXAGE ROTORS ─────────────────────────────────────────────────────
     // base = part d'altitude uniforme
-    float base = Fz / (4.0f * drone->rotorMaxThrust);
+    float base = Fy / (4.0f * drone->rotorMaxThrust);
 
     // chaque rotor reçoit altitude + contributions des couples
     drone->rotorSpeed[0] = base -  tau_p +  tau_r -  tau_y; // Decrease front-left for forward pitch
@@ -119,22 +118,17 @@ void drone_update(Drone * drone, double dt) {
     clamp_rotorSpeed(drone);
 
     // On calcule le thrust
-    float thrust[4];
-    for (int i = 0; i < 4; i++) {
-        thrust[i] = drone->rotorSpeed[i] * drone->rotorMaxThrust;
-    }
     
+    for (int i = 0; i < 4; i++) {
+        drone->thrust[i] = drone->rotorSpeed[i] * drone->rotorMaxThrust;
+    }
+} 
 
-    // Force totale de poussée 
-    float totalThrust = thrust[0] + thrust[1] + thrust[2] + thrust[3];
-
-    // On applique la force de poussée localement 
-    apply_force_local(drone, 0.0f, totalThrust, 0.0f);
-
+void compute_torque(Drone * drone, double dt) {
     // On applique les forces
-    drone->torque.x = (thrust[2] + thrust[3]) - (thrust[0] + thrust[1]);
-    drone->torque.y = -thrust[0] + thrust[1] - thrust[2] + thrust[3];
-    drone->torque.z = (thrust[0] + thrust[3]) - (thrust[1] + thrust[2]); // (FL + RL) - (FR + RR)
+    drone->torque.x = (drone->thrust[2] + drone->thrust[3]) - (drone->thrust[0] + drone->thrust[1]);
+    drone->torque.y = -drone->thrust[0] + drone->thrust[1] - drone->thrust[2] + drone->thrust[3];
+    drone->torque.z = (drone->thrust[0] + drone->thrust[3]) - (drone->thrust[1] + drone->thrust[2]); // (FL + RL) - (FR + RR)
 
     // TODO : Appliquer forces de torque
     drone->angularAcc.x = drone->torque.x / drone->momentOfInertia; // For pitch
@@ -163,21 +157,9 @@ void drone_update(Drone * drone, double dt) {
             drone->rot[i] += 360.0f;
         }
     }
+}
 
-    // Gravité
-    apply_force(drone, 0.0f, -drone->mass * 9.81f, 0.0f);
-
-    // Force de trainée
-    float speedSq = drone->vel.x*drone->vel.x + drone->vel.y*drone->vel.y + drone->vel.z*drone->vel.z;
-    float speed = sqrtf(speedSq);
-    if (speed > 0.001f) { // Avoid division by zero with very small speeds
-        float dragMagnitude = drone->linearDragCoefficient * speedSq;
-        drone->force.x -= (drone->vel.x / speed) * dragMagnitude;
-        drone->force.y -= (drone->vel.y / speed) * dragMagnitude;
-        drone->force.z -= (drone->vel.z / speed) * dragMagnitude;
-    }
-
-    // Intégration physique
+void update_linear_motion(Drone* drone, float dt) {
     // Calcul de l'accélération 
     drone->acc.x= drone->force.x / drone->mass;
     drone->acc.y = drone->force.y / drone->mass;
@@ -188,10 +170,37 @@ void drone_update(Drone * drone, double dt) {
     // On ajoute la vitesse à la position
     drone->pos = vec3_add(drone->pos, vec3_scale(drone->vel, dt));
 
+}
+
+void drone_update(Drone * drone, double dt) {
+    // On calcule le thrust en fonction de l'entrée utilisateur grâce aux PID: 
+    compute_thrust(drone, dt);
+
+    // On calcule la rotation induite par le changement de thrust de chaque rotors
+    compute_torque(drone, dt);
+
+    // On applique la force de poussée dans le référenciel monde en partant du référenciel du drone
+    float totalThrust = drone->thrust[0] + drone->thrust[1] + drone->thrust[2] + drone->thrust[3];
+    apply_force_local(drone, 0.0f, totalThrust, 0.0f);
+
+    // On applique la gravité
+    apply_force(drone, 0.0f, -drone->mass * 9.81f, 0.0f);
+
+    // On applique la force de trainée 
+    float speedSq = drone->vel.x*drone->vel.x + drone->vel.y*drone->vel.y + drone->vel.z*drone->vel.z;
+    float speed = sqrtf(speedSq);
+    if (speed > 0.001f) { // Avoid division by zero with very small speeds
+        float dragMagnitude = drone->linearDragCoefficient * speedSq;
+        drone->force.x -= (drone->vel.x / speed) * dragMagnitude;
+        drone->force.y -= (drone->vel.y / speed) * dragMagnitude;
+        drone->force.z -= (drone->vel.z / speed) * dragMagnitude;
+    }
+
+    // Intégration physique des translations (Euler explicite)
+    update_linear_motion(drone, dt);
 
     // Vérifie la collision avec le sol
     if(drone->pos.y<=1)drone->pos.y=1;
-
 
     // On reset les forces pour la prochaine frame
     drone->force.x = 0;drone->force.y = 0;drone->force.z = 0;

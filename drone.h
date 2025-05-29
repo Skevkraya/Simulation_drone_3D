@@ -14,6 +14,7 @@ typedef struct {
     float rot[3];     // Rotation (pitch, yaw, roll)
     Vec3 torque;  // Couple angulaire
     float rotorSpeed[4];  // vitesses des 4 rotors (0 à 1 ou en tours/min)
+    float thrust[4];        // Poussée du drone  pour chaque rotors
     float rotorMaxThrust; // poussée maximale d’un rotor
     Vec3 force;    // Force linéaire totale (N)
     float mass;
@@ -26,6 +27,11 @@ typedef struct {
 void drone_update(Drone * drone, double dt);
 void init_drone(Drone * drone);
 void clamp_rotorSpeed(Drone * drone);
+
+// Calculs physiques
+void compute_thrust(Drone* drone, double dt);
+void compute_torque(Drone * drone, double dt);
+void update_linear_motion(Drone* drone, float dt);
 
 // Calcul des forces
 void apply_force(Drone* drone, float fx, float fy, float fz);
