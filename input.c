@@ -1,7 +1,7 @@
 #include "lib.h"
 #include "input.h"
 #include "globals.h"
-#include "./map/map_perlin.h"
+#include "./map/main/map_main.h"
 #include "./math3d.h"
 
 Control * control;
