@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
     Drone drone;
     init_drone(&drone);
     init_pids();
-    if (!menu(drone)) {
+    if (!menu(&drone)) {
     fprintf(stderr, "Erreur lors du chargement/génération du chunk. Quitte.\n");
     return EXIT_FAILURE;
     }
