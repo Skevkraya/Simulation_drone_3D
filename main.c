@@ -29,7 +29,10 @@ int main(int argc, char *argv[]) {
     GLfloat light_pos[] = { 0.0f, 100.0f, 0.0f, 1.0f };
     glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
     srand(time(NULL));
-    if (!menu()) {
+    Drone drone;
+    init_drone(&drone);
+    init_pids();
+    if (!menu(drone)) {
     fprintf(stderr, "Erreur lors du chargement/génération du chunk. Quitte.\n");
     return EXIT_FAILURE;
     }
@@ -39,9 +42,7 @@ int main(int argc, char *argv[]) {
     
     // État initial du drone
     printf("ok après memset \n");
-    Drone drone;
-    init_drone(&drone);
-    init_pids();
+
     control_init();
 
     double dt = 5e-2; // 0.05s
