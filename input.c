@@ -74,8 +74,6 @@ void SDL_event_listener(Drone * drone, double dt) {
                     control->altitude_setpoint = drone->pos.y - 0.9f;  
                     break;
                 case SDLK_o: // Décollage
-                        // control->altitude_hold     = 1;
-                        // control->altitude_setpoint = drone->pos[1] + 2.0f;
                         drone->rotorSpeed[0] = 0;
                     break;
                 case SDLK_l:
@@ -89,20 +87,14 @@ void SDL_event_listener(Drone * drone, double dt) {
             switch (event.key.keysym.sym) {
                 case SDLK_w:
                 case SDLK_s:
-                    control->pitch_setpoint = 0.0f; // Reset pitch to level
+                    control->pitch_setpoint = 0.0f; 
                     break;
                 case SDLK_a:
                 case SDLK_d:
-                    control->roll_setpoint = 0.0f; // Reset roll to level
+                    control->roll_setpoint = 0.0f;
                     break;
-                // case SDLK_a:
-                // case SDLK_e:
-                //     // control->yaw_setpoint = 0.0f; // Reset yaw to no rotation
-                //     break;
             }
         }
-                // printf("Pitch setpoint : %f, \nRoll setpoint : %f, \nYaw setpoint : %f, \n", control->pitch_setpoint, control->roll_setpoint, control->yaw_setpoint);
-
         if(event.type == SDL_QUIT) {
             running = 0;    
         }

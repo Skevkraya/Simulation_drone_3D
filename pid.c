@@ -3,12 +3,10 @@
 
 
 void init_pids() {
-    // pour les essais, tu peux commencer par :
-    // Kp = 1.0f, Ki = 0.1f, Kd = 0.01f puis ajuster
     pid_init(&pid_pitch, 0.01f, 0.00f, 0.005f);
     pid_init(&pid_roll,  0.01f, 0.000f, 0.005f);
     pid_init(&pid_yaw,   0.01f, 0.00f, 0.005f);
-    pid_init(&pid_alt,   2.0f, 0.0f,  0.001f);  // plus agressif sur l'altitude
+    pid_init(&pid_alt,   2.0f, 0.0f,  0.001f);
 }
 
 void pid_init(PID* pid, float Kp, float Ki, float Kd) {

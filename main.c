@@ -1,12 +1,12 @@
 #define SDL_MAIN_HANDLED
 #include "lib.h"
 #include "drone.h"
-// #include "graphics.h"
 #include "input.h"
 #include "./map/map_perlin.h"
 #include "pid.h"
 
 // gcc main.c drone.c graphics.c input.c  -o drone3D.exe -lmingw32 -lSDLmain -lSDL -lSDL_gfx -lm -lopengl32 -lglu32
+
 int running = 1;
 int main(int argc, char *argv[]) {
     // Pour la console de debug sur Windows
@@ -36,6 +36,7 @@ int main(int argc, char *argv[]) {
     printf("ok avant perlin \n");
     init_perlin();
     printf("ok après perlin \n");
+    
     // État initial du drone
     printf("ok après memset \n");
     Drone drone;

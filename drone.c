@@ -9,12 +9,12 @@ PID pid_pitch, pid_roll, pid_yaw, pid_alt;
 void init_drone(Drone * drone) {
     memset(drone, 0, sizeof(Drone));
     drone->pos.x = 0.0f;
-    drone->pos.y = 0.0f;
+    drone->pos.y = 100.0f;
     drone->pos.z = -5.0f;  // pour qu'on voie le drone au démarrage
 
     drone->mass = 1.0f;
 
-    drone->rotorMaxThrust = 10.0f;
+    drone->rotorMaxThrust = 20.0f;
 
     drone->momentOfInertia = 10.0f;
 
@@ -70,6 +70,7 @@ void apply_force_local(Drone* drone, float fx, float fy, float fz) {
 
     apply_force(drone, rx, ry, rz);
 }
+
 void compute_thrust(Drone* drone, double dt) {
              // ─── 1) CALCUL DES EFFORTS PAR PID ────────────────────────────────────────
     // Pitch (tangage) autour de X
@@ -109,10 +110,10 @@ void compute_thrust(Drone* drone, double dt) {
     float base = Fy / (4.0f * drone->rotorMaxThrust);
 
     // chaque rotor reçoit altitude + contributions des couples
-    drone->rotorSpeed[0] = base -  tau_p +  tau_r -  tau_y; // Decrease front-left for forward pitch
-    drone->rotorSpeed[1] = base -  tau_p -  tau_r +  tau_y; // Decrease front-right for forward pitch
-    drone->rotorSpeed[2] = base +  tau_p -  tau_r -  tau_y; // Increase rear-left for forward pitch
-    drone->rotorSpeed[3] = base +  tau_p +  tau_r +  tau_y; // Increase rear-right for forward pitch
+    drone->rotorSpeed[0] = base -  tau_p +  tau_r -  tau_y; 
+    drone->rotorSpeed[1] = base -  tau_p -  tau_r +  tau_y; 
+    drone->rotorSpeed[2] = base +  tau_p -  tau_r -  tau_y; 
+    drone->rotorSpeed[3] = base +  tau_p +  tau_r +  tau_y; 
 
     // on borne bien entre 0 et 1
     clamp_rotorSpeed(drone);
@@ -128,12 +129,12 @@ void compute_torque(Drone * drone, double dt) {
     // On applique les forces
     drone->torque.x = (drone->thrust[2] + drone->thrust[3]) - (drone->thrust[0] + drone->thrust[1]);
     drone->torque.y = -drone->thrust[0] + drone->thrust[1] - drone->thrust[2] + drone->thrust[3];
-    drone->torque.z = (drone->thrust[0] + drone->thrust[3]) - (drone->thrust[1] + drone->thrust[2]); // (FL + RL) - (FR + RR)
+    drone->torque.z = (drone->thrust[0] + drone->thrust[3]) - (drone->thrust[1] + drone->thrust[2]); 
 
     // TODO : Appliquer forces de torque
-    drone->angularAcc.x = drone->torque.x / drone->momentOfInertia; // For pitch
-    drone->angularAcc.y = drone->torque.y / drone->momentOfInertia; // For yaw
-    drone->angularAcc.z = drone->torque.z / drone->momentOfInertia; // For roll
+    drone->angularAcc.x = drone->torque.x / drone->momentOfInertia; // pitch
+    drone->angularAcc.y = drone->torque.y / drone->momentOfInertia; // yaw
+    drone->angularAcc.z = drone->torque.z / drone->momentOfInertia; // roll
 
     drone->angularVel.x += drone->angularAcc.x * dt;
     drone->angularVel.y += drone->angularAcc.y * dt;
